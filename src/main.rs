@@ -1,4 +1,5 @@
 mod setter;
+mod solver;
 mod words;
 
 fn main() {
