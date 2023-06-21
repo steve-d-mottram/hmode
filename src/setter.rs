@@ -34,7 +34,7 @@ impl Setter {
         Self::from_word(w[index])
     }
 
-    fn from_word(word: &'static str) -> Self {
+    pub fn from_word(word: &'static str) -> Self {
         let chars: Vec<char> = word.chars().collect();
         Setter {
             chosen: word,
