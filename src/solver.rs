@@ -15,7 +15,7 @@ impl Solver {
         }
     }
 
-    fn filter(list: &mut Vec<&'static str>, clues: CheckResult) {
+    fn filter(list: Vec<&'static str>, clues: CheckResult) -> Vec<&'static str> {
         // Split clues into separate collections
         let mut exacts: Vec<(usize, char)> = Vec::with_capacity(5);
         let mut wrongs: Vec<char> = Vec::with_capacity(5);
@@ -29,24 +29,28 @@ impl Solver {
         }
 
         // Apply position-specific filters to word list
-        list.retain(|word| {
-            for c in &wrongs {
-                if word.contains(*c) {
-                    return false;
+        let result = list
+            .into_iter()
+            .filter(|word| {
+                for c in &wrongs {
+                    if word.contains(*c) {
+                        return false;
+                    }
                 }
-            }
-            for &(i, c) in &exacts {
-                if word.chars().nth(i) != Some(c) {
-                    return false;
+                for &(i, c) in &exacts {
+                    if word.chars().nth(i) != Some(c) {
+                        return false;
+                    }
                 }
-            }
-            for &(i, c) in &elsewheres {
-                if (!word.contains(c)) || word.chars().nth(i) == Some(c) {
-                    return false;
+                for &(i, c) in &elsewheres {
+                    if (!word.contains(c)) || word.chars().nth(i) == Some(c) {
+                        return false;
+                    }
                 }
-            }
-            true
-        });
+                true
+            })
+            .collect();
+        result
     }
 
     pub fn guess(&self) -> &'static str {
@@ -58,7 +62,7 @@ impl Solver {
             for word in &self.words {
                 let mut cpy = self.words.clone();
                 let setter = Setter::from_word(word);
-                Solver::filter(&mut cpy, setter.check(probe));
+                cpy = Solver::filter(cpy, setter.check(probe));
                 let diff = start_len - cpy.len();
                 total_diff += diff;
             }
@@ -78,9 +82,9 @@ mod tests {
     #[test]
     fn filter_handles_all_clues() {
         let original = Solver::new();
-        let mut filtered = original.clone();
-        Solver::filter(
-            &mut filtered.words,
+        let original_len = original.words.len();
+        let mut filtered = Solver::filter(
+            original.words,
             [
                 Clue::Right('a'),
                 Clue::Wrong('b'),
@@ -89,10 +93,10 @@ mod tests {
                 Clue::Elsewhere('e'),
             ],
         );
-        assert!(filtered.words.len() > 0);
-        assert!(original.words.len() > filtered.words.len());
+        assert!(filtered.len() > 0);
+        assert!(original_len > filtered.len());
 
-        for word in filtered.words {
+        for word in filtered {
             for c in "bcd".chars() {
                 assert!(!word.contains(c));
             }
