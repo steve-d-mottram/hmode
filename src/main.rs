@@ -4,5 +4,6 @@ mod words;
 
 fn main() {
     let solver = solver::Solver::new();
-    println!("solver guessed {}", solver.guess());
+    let word: &str = std::str::from_utf8(solver.guess()).unwrap();
+    println!("solver guessed {}", word);
 }

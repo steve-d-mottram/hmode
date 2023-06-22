@@ -4,9 +4,9 @@ use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Clue {
-    Wrong(char),
-    Elsewhere(char),
-    Right(char),
+    Wrong(u8),
+    Elsewhere(u8),
+    Right(u8),
 }
 
 const MAP_OTHERS: [[usize; 4]; 5] = [
@@ -21,8 +21,7 @@ pub type CheckResult = [Clue; 5];
 
 #[derive(Debug)]
 pub struct Setter {
-    chosen: &'static str,
-    chars: Vec<char>,
+    chosen: &'static [u8; 5],
 }
 
 impl Setter {
@@ -34,30 +33,26 @@ impl Setter {
         Self::from_word(w[index])
     }
 
-    pub fn from_word(word: &'static str) -> Self {
-        let chars: Vec<char> = word.chars().collect();
-        Setter {
-            chosen: word,
-            chars,
-        }
+    pub fn from_word(word: &'static [u8; 5]) -> Self {
+        Setter { chosen: word }
     }
 
-    pub fn check(&self, word: &str) -> CheckResult {
+    pub fn check(&self, word: &[u8; 5]) -> CheckResult {
         // Break the word into an array of chars so that we can index over it
-        let word_chars: Vec<char> = word.chars().collect();
+        //        let word_chars: Vec<u8> = word.chars().collect();
         let mut excluded_word: Vec<bool> = [false, false, false, false, false].into();
         let mut excluded_self = excluded_word.clone();
 
         // result defaults to all "grey"
         let mut result: Vec<Clue> = Vec::with_capacity(5);
         for i in 0..5 {
-            result.push(Clue::Wrong(word_chars[i]));
+            result.push(Clue::Wrong(word[i]));
         }
 
         // Record exact matches
         for i in 0..5 {
-            if word_chars[i] == self.chars[i] {
-                result[i] = Clue::Right(word_chars[i]);
+            if word[i] == self.chosen[i] {
+                result[i] = Clue::Right(word[i]);
                 excluded_word[i] = true;
                 excluded_self[i] = true;
             }
@@ -66,8 +61,8 @@ impl Setter {
         // Record "orange" matches
         for i in 0..5 {
             for j in MAP_OTHERS[i] {
-                if !(excluded_word[i] || excluded_self[j]) && (self.chars[j] == word_chars[i]) {
-                    result[i] = Clue::Elsewhere(word_chars[i]);
+                if !(excluded_word[i] || excluded_self[j]) && (self.chosen[j] == word[i]) {
+                    result[i] = Clue::Elsewhere(word[i]);
                     excluded_word[i] = true;
                     excluded_self[j] = true;
                 }
@@ -82,91 +77,91 @@ mod test {
     use super::*;
 
     fn mock_setter() -> Setter {
-        Setter::from_word("abcce")
+        Setter::from_word(b"abcce")
     }
 
     #[test]
     fn check_no_match() {
-        let test = "fghij";
+        let test = b"fghij";
         let result = mock_setter().check(test);
         let mut n: usize = 0;
         for i in result {
-            assert_eq!(i, Clue::Wrong(test.chars().nth(n).unwrap()));
+            assert_eq!(i, Clue::Wrong(test[n]));
             n += 1;
         }
     }
 
     #[test]
     fn check_1_match() {
-        let result = mock_setter().check("fbhij");
+        let result = mock_setter().check(b"fbhij");
         assert_eq!(
             result,
             [
-                Clue::Wrong('f'),
-                Clue::Right('b'),
-                Clue::Wrong('h'),
-                Clue::Wrong('i'),
-                Clue::Wrong('j')
+                Clue::Wrong(b'f'),
+                Clue::Right(b'b'),
+                Clue::Wrong(b'h'),
+                Clue::Wrong(b'i'),
+                Clue::Wrong(b'j')
             ]
         );
     }
 
     #[test]
     fn check_2_match() {
-        let result = mock_setter().check("fbhcj");
+        let result = mock_setter().check(b"fbhcj");
         assert_eq!(
             result,
             [
-                Clue::Wrong('f'),
-                Clue::Right('b'),
-                Clue::Wrong('h'),
-                Clue::Right('c'),
-                Clue::Wrong('j')
+                Clue::Wrong(b'f'),
+                Clue::Right(b'b'),
+                Clue::Wrong(b'h'),
+                Clue::Right(b'c'),
+                Clue::Wrong(b'j')
             ]
         );
     }
 
     #[test]
     fn check_1_elsewhere() {
-        let result = mock_setter().check("fgahj");
+        let result = mock_setter().check(b"fgahj");
         assert_eq!(
             result,
             [
-                Clue::Wrong('f'),
-                Clue::Wrong('g'),
-                Clue::Elsewhere('a'),
-                Clue::Wrong('h'),
-                Clue::Wrong('j')
+                Clue::Wrong(b'f'),
+                Clue::Wrong(b'g'),
+                Clue::Elsewhere(b'a'),
+                Clue::Wrong(b'h'),
+                Clue::Wrong(b'j')
             ]
         );
     }
 
     #[test]
     fn check_match_only_counted_once() {
-        let result = mock_setter().check("bbbbb");
+        let result = mock_setter().check(b"bbbbb");
         assert_eq!(
             result,
             [
-                Clue::Wrong('b'),
-                Clue::Right('b'),
-                Clue::Wrong('b'),
-                Clue::Wrong('b'),
-                Clue::Wrong('b')
+                Clue::Wrong(b'b'),
+                Clue::Right(b'b'),
+                Clue::Wrong(b'b'),
+                Clue::Wrong(b'b'),
+                Clue::Wrong(b'b')
             ]
         );
     }
 
     #[test]
     fn real_world() {
-        let result = Setter::from_word("maybe").check("cable");
+        let result = Setter::from_word(b"maybe").check(b"cable");
         assert_eq!(
             result,
             [
-                Clue::Wrong('c'),
-                Clue::Right('a'),
-                Clue::Elsewhere('b'),
-                Clue::Wrong('l'),
-                Clue::Right('e')
+                Clue::Wrong(b'c'),
+                Clue::Right(b'a'),
+                Clue::Elsewhere(b'b'),
+                Clue::Wrong(b'l'),
+                Clue::Right(b'e')
             ]
         );
     }
