@@ -1,4 +1,7 @@
-static ALL_WORDS: &'static [&[u8; 5]] = &[
+pub type WdlWord = &'static [u8; 5];
+pub type WdlBytes = [u8; 5];
+
+static ALL_WORDS: &[WdlWord] = &[
     b"cigar", b"rebut", b"sissy", b"humph", b"awake", b"blush", b"focal", b"evade", b"naval",
     b"serve", b"heath", b"dwarf", b"model", b"karma", b"stink", b"grade", b"quiet", b"bench",
     b"abate", b"feign", b"major", b"death", b"fresh", b"crust", b"stool", b"colon", b"abase",
@@ -1443,9 +1446,13 @@ static ALL_WORDS: &'static [&[u8; 5]] = &[
     b"zygon", b"zymes", b"zymic",
 ];
 
-pub fn all_words() -> Vec<&'static [u8; 5]> {
+pub fn all_words() -> Vec<WdlWord> {
     ALL_WORDS.to_vec()
 }
-pub fn answer_words() -> Vec<&'static [u8; 5]> {
+
+pub fn all_words_copy() -> Vec<WdlBytes> {
+    todo!()
+}
+pub fn answer_words() -> Vec<WdlWord> {
     ALL_WORDS[0..2315].to_vec()
 }

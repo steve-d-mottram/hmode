@@ -38,8 +38,6 @@ impl Setter {
     }
 
     pub fn check(&self, word: &[u8; 5]) -> CheckResult {
-        // Break the word into an array of chars so that we can index over it
-        //        let word_chars: Vec<u8> = word.chars().collect();
         let mut excluded_word: Vec<bool> = [false, false, false, false, false].into();
         let mut excluded_self = excluded_word.clone();
 
