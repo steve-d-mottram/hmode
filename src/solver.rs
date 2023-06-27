@@ -1,100 +1,18 @@
 use crate::setter::{CheckResult, Clue, Setter};
 use crate::words::*;
 use std::collections::{HashMap, HashSet};
-/*
+
 struct Index {
     words: Vec<Option<WdlWord>>,
     words_by_byte_posn: HashMap<u8, HashMap<Option<usize>, HashSet<usize>>>,
     size: usize,
 }
 
-impl Index {
-    fn new() -> Self {
-        let words: Vec<Option<WdlWord>> = answer_words().iter().map(|&w| Some(w)).collect();
-        let size = words.len();
-        let mut words_by_byte_posn = HashMap::new();
-        for (i, &word) in answer_words().iter().enumerate() {
-            for (j, c) in word.iter().enumerate() {
-                // Insert the index of the word into the hashset, indexed by
-                // the byte it contains and None, to indicate the position is any
-                words_by_byte_posn
-                    .entry(*c)
-                    .or_insert(HashMap::new())
-                    .entry(None)
-                    .or_insert(HashSet::new())
-                    .insert(i);
-
-                // Insert the index of the word into the hashset, indexed by
-                // the byte it contains and Some(j), to indicate the byte is at position j
-                words_by_byte_posn
-                    .entry(*c)
-                    .or_insert(HashMap::new())
-                    .entry(Some(j))
-                    .or_insert(HashSet::new())
-                    .insert(i);
-            }
-        }
-        Index {
-            words,
-            words_by_byte_posn,
-            size,
-        }
-    }
-
-    fn delete_words_with_byte_at(&mut self, c: u8, i: Option<usize>) {
-        if let Some(h) = self.words_by_byte_posn.get(&c) {
-            if let Some(h) = h.get(&i) {
-                for v in h.iter() {
-                    self.words[*v] = None;
-                    self.size -= 1;
-                }
-            }
-        }
-    }
-
-       fn delete_words_without_byte_at(&mut self, c: u8, i: Option<usize>) {
-
-            match i {
-                None => { // We want to delete all words that don't contain the byte
-                    for k in self.words_by_byte_posn.keys() {
-                        if k != &c {
-
-                        }
-                    }
-                }
-            }
-            if let Some(h) = self.words_by_byte_posn.get(&c) {
-                match i {
-                    None => { // We want to delete all words that contain the byte, irrespective of position
-                        if let h = h.get(&i)
-                        for p in h.iter() {
-
-                        }
-                    }
-                }
-                for k in h.keys() {
-
-                }
-                if let Some(h) = h.get(&i) {
-                    for v in h.iter() {
-                        self.words[*v] = None;
-                        self.size -= 1;
-                    }
-                }
-            }
-        }
-
-    fn len(&self) -> usize {
-        self.size
-    }
-}
-
-*/
 #[derive(Debug, Clone)]
 pub struct Solver {
     words: Vec<&'static [u8; 5]>,
     probe_words: Vec<&'static [u8; 5]>,
-    guesses: u8,
+    guesses: u32,
 }
 
 impl Solver {
@@ -104,6 +22,10 @@ impl Solver {
             probe_words: all_words(),
             guesses: 0,
         }
+    }
+
+    pub fn guesses(&self) -> u32 {
+        self.guesses
     }
 
     fn filter(list: &Vec<&'static [u8; 5]>, clues: CheckResult) -> Vec<&'static [u8; 5]> {
