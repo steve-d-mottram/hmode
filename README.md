@@ -19,7 +19,7 @@ letters revealed by previous guesses. For humans playing this way, this makes it
 where part of the word is known, and the there are too few remaining guesses to allow the user to find the solution
 e.g. if the user has found -OUND, following guesses could be HOUND, WOUND, SOUND, BOUND, FOUND etc.
 
-It turns out though that a suitable algorithm for hard mode is potentially simpler than for normal mode. This app
+It turns out that a suitable algorithm for hard mode is potentially simpler than for normal mode. This app
 starts with a list of all allowed Wordle guesses (over 12,000), sorted so that the first ~2300 are the allowed 
 answer words. There are two key components to hmode: the Setter, which knows the target word and provides Clues when
 asked to score a Guess, and the Solver, which uses the Clues to refine its Guesses until it finds the target word. In
@@ -38,10 +38,10 @@ These stages are repeated until the Clue indicates that the correct word has bee
 This algorithm turns out to be surprisingly simple, if computationally demanding.
 The process involves finding the word that, if applied to all possible remaining answer words to generate Clues,
 on average eliminates the largest proportion of the remaining word list. This requires A.len()^2 x F.len() comparisons, where
-A is the list of allowed answers, and F is the full Wordle word list. This equates to approximately 63E10 calculations for
+A is the list of allowed answers, and F is the full Wordle word list. This equates to approximately 63E9 calculations for
 the first guess before filtering.
 
-on a 2023 Intel i5 laptop, this is infeasibly slow for generating the first guess. However, since the first guess is made
+On a 2023 Intel i5 laptop, this is infeasibly slow for generating the first guess. However, since the first guess is made
 from a position of no information, and the the algorithm converges very rapidly, hmode uses a pre-selected word for the first
 guess, and then applies the algorithm from the second guess onwards, when the word list is much shorter after filtering using
 the first Clue.
@@ -49,7 +49,9 @@ the first Clue.
 Although it is not computationally efficient to search for the very best starting word for this algorithm on the hardware 
 available, hmode includes a mode that allows a proposed starting word to be tested for efficiency over the whole set 
 of allowed Wordle answers, calculating the mean number of guesses to solve, and a list of outliers that could not be solved
-in 6 or fewer guesses. This analysis takes about 6 minutes on the hardware available to the author.
+in 6 or fewer guesses. This analysis takes about 6 minutes on the hardware available to the author. This analysis mode has allowed
+the author to test a few commonly reported "best" starting words and select one that gives good average performance while finding all allowed
+Wordle answers within 6 guesses.
 
 ## Performance
 The current version of hmode uses the starting word "tares" and solves all Wordle answers in fewer than 6 guesses, with a
