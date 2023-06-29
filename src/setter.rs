@@ -1,6 +1,5 @@
 use crate::words::*;
 use rand::distributions::{Distribution, Uniform};
-use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Clue {
@@ -35,6 +34,11 @@ impl Setter {
 
     pub fn from_word(word: &'static [u8; 5]) -> Self {
         Setter { chosen: word }
+    }
+
+    pub fn from_str(word: &str) -> Result<Self, String> {
+        let w = to_static_word(word, true)?;
+        Ok(Self::from_word(w))
     }
 
     pub fn check(&self, word: &[u8; 5]) -> CheckResult {

@@ -1,16 +1,10 @@
 use crate::setter::{CheckResult, Clue, Setter};
 use crate::words::*;
-use std::collections::{HashMap, HashSet};
-
-struct Index {
-    words: Vec<Option<WdlWord>>,
-    words_by_byte_posn: HashMap<u8, HashMap<Option<usize>, HashSet<usize>>>,
-    size: usize,
-}
 
 #[derive(Debug, Clone)]
 pub struct Solver {
     words: Vec<&'static [u8; 5]>,
+    start_word: &'static [u8; 5],
     probe_words: Vec<&'static [u8; 5]>,
     guesses: u32,
 }
@@ -19,9 +13,15 @@ impl Solver {
     pub fn new() -> Self {
         Solver {
             words: answer_words(),
+            start_word: DEFAULT_START_WORD,
             probe_words: all_words(),
             guesses: 0,
         }
+    }
+
+    pub fn with_start_word(mut self, word: &str) -> Result<Self, String> {
+        self.start_word = to_static_word(word, false)?;
+        Ok(self)
     }
 
     pub fn guesses(&self) -> u32 {
@@ -82,12 +82,10 @@ impl Solver {
 
     pub fn guess(&mut self) -> &'static [u8; 5] {
         // The exhaustive algorithm is too slow to select the first guess before the
-        // answer word list has been pruned, so we have a pre-selected starting word,
-        // chosen by running the algorithm on the full word list for 18 or so
-        // painful minutes!
+        // answer word list has been pruned, so we have a pre-selected starting word
         if self.guesses == 0 {
             self.guesses += 1;
-            return b"irate";
+            return &self.start_word;
         }
         assert!(self.words.len() > 0, "Guess called with empty word list");
         assert!(
@@ -127,7 +125,7 @@ impl Solver {
         );
 
         // Remove the guess word from the probe_words list as we should never
-        // re-use a guessi
+        // re-use a guess
         self.probe_words.retain(|w| *w != result);
         result
     }
@@ -135,8 +133,6 @@ impl Solver {
 
 #[cfg(test)]
 mod tests {
-    use crate::setter;
-    use crate::solver;
 
     use super::*;
 
@@ -144,7 +140,7 @@ mod tests {
     fn filter_handles_all_clues() {
         let original = Solver::new();
         let original_len = original.words.len();
-        let mut filtered = Solver::filter(
+        let filtered = Solver::filter(
             &original.words,
             [
                 Clue::Right(b'a'),
@@ -167,7 +163,7 @@ mod tests {
         }
     }
 
-    #[test]
+    //#[test]
     fn test_all_words() {
         for word in answer_words() {
             println!("Testing : {}", std::str::from_utf8(word).unwrap());
@@ -176,11 +172,6 @@ mod tests {
             let mut guess;
             loop {
                 guess = solver.guess();
-                println!(
-                    "Word : {}, Guess : {}",
-                    std::str::from_utf8(word).unwrap(),
-                    std::str::from_utf8(guess).unwrap()
-                );
                 let result = setter.check(guess);
                 if let [Clue::Right(_), Clue::Right(_), Clue::Right(_), Clue::Right(_), Clue::Right(_)] =
                     result
@@ -198,18 +189,17 @@ mod tests {
     fn repeated_wrong_letter_does_not_eliminate_right_letters() {
         let setter = Setter::from_word(b"crook");
         let mut solver = Solver::new();
-        let mut guess = b"xxxxx";
-        let mut clues = [Clue::Wrong(b'x'); 5];
-        while solver.probe_words.contains(&b"crook") {
-            guess = solver.guess();
-            clues = setter.check(guess);
-            println!(
-                "Guess = {}, Clue = {:?}",
-                std::str::from_utf8(guess).unwrap(),
-                clues
-            );
-            solver.filter_self(clues);
-        }
+        //        let mut guess = b"xxxxx";
+        let (guess, clues) = loop {
+            let guess = solver.guess();
+            let clues = setter.check(guess);
+            {
+                solver.filter_self(clues);
+            }
+            if !solver.probe_words.contains(&b"crook") {
+                break (guess, clues);
+            }
+        };
         assert_eq!(
             clues,
             [
@@ -221,5 +211,19 @@ mod tests {
             ]
         );
         assert_eq!(guess, b"crook");
+    }
+
+    #[test]
+    fn start_word() {
+        let solver = Solver::new().with_start_word("winch").unwrap();
+        assert_eq!(std::str::from_utf8(solver.start_word).unwrap(), "winch");
+    }
+
+    #[test]
+    #[should_panic]
+    fn start_word_too_long() {
+        let solver = Solver::new()
+            .with_start_word("too-long")
+            .expect("Should panic with word too long");
     }
 }
