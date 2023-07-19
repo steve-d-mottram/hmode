@@ -7,20 +7,22 @@ pub struct Solver {
     start_word: &'static [u8; 5],
     probe_words: Vec<&'static [u8; 5]>,
     guesses: u32,
+    use_alt_words: bool,
 }
 
 impl Solver {
-    pub fn new() -> Self {
+    pub fn new(alt_words: bool) -> Self {
         Solver {
             words: answer_words(),
             start_word: DEFAULT_START_WORD,
-            probe_words: all_words(),
+            probe_words: all_words(alt_words),
             guesses: 0,
+            use_alt_words: alt_words,
         }
     }
 
     pub fn with_start_word(mut self, word: &str) -> Result<Self, String> {
-        self.start_word = to_static_word(word, false)?;
+        self.start_word = to_static_word(word, false, self.use_alt_words)?;
         Ok(self)
     }
 
@@ -138,7 +140,7 @@ mod tests {
 
     #[test]
     fn filter_handles_all_clues() {
-        let original = Solver::new();
+        let original = Solver::new(false);
         let original_len = original.words.len();
         let filtered = Solver::filter(
             &original.words,
@@ -167,7 +169,7 @@ mod tests {
     fn test_all_words() {
         for word in answer_words() {
             println!("Testing : {}", std::str::from_utf8(word).unwrap());
-            let mut solver = Solver::new();
+            let mut solver = Solver::new(false);
             let setter = Setter::from_word(word);
             let mut guess;
             loop {
@@ -188,7 +190,7 @@ mod tests {
     #[test]
     fn repeated_wrong_letter_does_not_eliminate_right_letters() {
         let setter = Setter::from_word(b"crook");
-        let mut solver = Solver::new();
+        let mut solver = Solver::new(false);
         //        let mut guess = b"xxxxx";
         let (guess, clues) = loop {
             let guess = solver.guess();
@@ -215,14 +217,14 @@ mod tests {
 
     #[test]
     fn start_word() {
-        let solver = Solver::new().with_start_word("winch").unwrap();
+        let solver = Solver::new(false).with_start_word("winch").unwrap();
         assert_eq!(std::str::from_utf8(solver.start_word).unwrap(), "winch");
     }
 
     #[test]
     #[should_panic]
     fn start_word_too_long() {
-        let solver = Solver::new()
+        let solver = Solver::new(false)
             .with_start_word("too-long")
             .expect("Should panic with word too long");
     }

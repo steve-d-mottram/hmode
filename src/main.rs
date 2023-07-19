@@ -18,6 +18,12 @@ struct Cli {
     /// Performs a demo of the solver, where the provided word is the solution
     #[arg(short, long)]
     demo: Option<String>,
+    /// Prints the complete list of recognised Words
+    #[arg(long)]
+    list_words: bool,
+    /// Uses a shorter alternative word list, instead of the very obscure Wordle list of valid words
+    #[arg(short, long)]
+    alt_words: bool,
 }
 
 struct Outlier(String, u32);
@@ -32,9 +38,9 @@ impl std::fmt::Display for Stats {
         // is very similar to `println!`.
         write!(f, "\nAverage solving steps : {}\n", self.0)?;
         if self.1.len() > 0 {
-            write!(f, "\nOutliers")?;
+            write!(f, "\nOutliers\n")?;
             for outlier in &self.1 {
-                write!(f, "{} : {}", outlier.0, outlier.1)?;
+                write!(f, "{} : {}\n", outlier.0, outlier.1)?;
             }
         }
         write!(f, "\n")
@@ -46,11 +52,11 @@ fn heartbeat() {
     std::io::stdout().flush().unwrap();
 }
 
-fn stats_for_start_word(start_word: &str) -> Result<Stats, String> {
+fn stats_for_start_word(start_word: &str, alt_words: bool) -> Result<Stats, String> {
     let mut total_guesses: u32 = 0;
     let mut outliers: Vec<Outlier> = Vec::new();
     for word in words::answer_words() {
-        let mut solver = solver::Solver::new().with_start_word(start_word)?;
+        let mut solver = solver::Solver::new(alt_words).with_start_word(start_word)?;
         let setter = setter::Setter::from_word(word);
         let mut guess;
         loop {
@@ -78,9 +84,9 @@ fn stats_for_start_word(start_word: &str) -> Result<Stats, String> {
     ))
 }
 
-fn demo(target: &str) -> Result<(), String> {
+fn demo(target: &str, alt_words: bool) -> Result<(), String> {
     let setter = setter::Setter::from_str(target)?;
-    let mut solver = solver::Solver::new();
+    let mut solver = solver::Solver::new(alt_words);
     loop {
         let guess = solver.guess();
         let result = setter.check(guess);
@@ -103,6 +109,12 @@ fn demo(target: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn list_all_words(alt_words: bool) {
+    for i in words::all_words(alt_words) {
+        println!("{}", std::str::from_utf8(i).expect("Invalid utf8"));
+    }
+}
+
 fn main() -> Result<(), String> {
     let cli = Cli::parse();
     match cli {
@@ -114,11 +126,15 @@ fn main() -> Result<(), String> {
                 "Calculating statistics for start word \"{}\". This may take some time.",
                 s
             );
-            println!("{}", stats_for_start_word(&s.as_str())?);
+            println!("{}", stats_for_start_word(&s.as_str(), cli.alt_words)?);
+            Ok(())
+        }
+        Cli { demo: Some(d), .. } => Ok(demo(d.as_str(), cli.alt_words)?),
+        Cli { .. } if cli.list_words => {
+            list_all_words(cli.alt_words);
             Ok(())
         }
 
-        Cli { demo: Some(d), .. } => Ok(demo(d.as_str())?),
         _ => Err("Invalid parameters. Try 'hmode --help'".into()),
     }
 }

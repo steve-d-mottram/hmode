@@ -37,7 +37,7 @@ impl Setter {
     }
 
     pub fn from_str(word: &str) -> Result<Self, String> {
-        let w = to_static_word(word, true)?;
+        let w = to_static_word(word, true, false)?;
         Ok(Self::from_word(w))
     }
 
