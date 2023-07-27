@@ -24,6 +24,7 @@ pub struct Setter {
 }
 
 impl Setter {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         let w = answer_words();
         let range = Uniform::new(0usize, w.len());
@@ -47,8 +48,8 @@ impl Setter {
 
         // result defaults to all "grey"
         let mut result: Vec<Clue> = Vec::with_capacity(5);
-        for i in 0..5 {
-            result.push(Clue::Wrong(word[i]));
+        for c in word.iter().take(5) {
+            result.push(Clue::Wrong(*c));
         }
 
         // Record exact matches

@@ -30,7 +30,7 @@ impl Solver {
         self.guesses
     }
 
-    fn filter(list: &Vec<&'static [u8; 5]>, clues: CheckResult) -> Vec<&'static [u8; 5]> {
+    fn filter(list: &[&'static [u8; 5]], clues: CheckResult) -> Vec<&'static [u8; 5]> {
         // Split clues into separate collections
         let mut exacts: Vec<(usize, u8)> = Vec::with_capacity(5);
         let mut wrongs: Vec<u8> = Vec::with_capacity(5);
@@ -87,11 +87,11 @@ impl Solver {
         // answer word list has been pruned, so we have a pre-selected starting word
         if self.guesses == 0 {
             self.guesses += 1;
-            return &self.start_word;
+            return self.start_word;
         }
-        assert!(self.words.len() > 0, "Guess called with empty word list");
+        assert!(!self.words.is_empty(), "Guess called with empty word list");
         assert!(
-            self.probe_words.len() > 0,
+            !self.probe_words.is_empty(),
             "Guess called with empty probe word list"
         );
         if self.words.len() == 1 {
@@ -106,7 +106,7 @@ impl Solver {
                 let mut cpy = self.words.clone();
                 let setter = Setter::from_word(word);
                 cpy = Solver::filter(&cpy, setter.check(probe));
-                if cpy.len() > 0 {
+                if !cpy.is_empty() {
                     let diff = start_len - cpy.len();
                     total_diff += diff;
                 }
@@ -118,13 +118,12 @@ impl Solver {
         }
 
         self.guesses += 1;
-        let result = best_word.expect(
-            format!(
+        let result = best_word.unwrap_or_else(|| {
+            panic!(
                 "No probe word was selected. words : {:?}, probe_words : {:?}",
                 self.words, self.probe_words
             )
-            .as_str(),
-        );
+        });
 
         // Remove the guess word from the probe_words list as we should never
         // re-use a guess
@@ -165,9 +164,10 @@ mod tests {
         }
     }
 
-    //#[test]
-    fn test_all_words() {
-        for word in answer_words() {
+    #[test]
+    #[ignore] // This test is very slow. To run, use 'cargo test --ignored' or 'cargo test --include-ignored'
+    fn test_some_words() {
+        for word in answer_words().into_iter().take(500) {
             println!("Testing : {}", std::str::from_utf8(word).unwrap());
             let mut solver = Solver::new(false);
             let setter = Setter::from_word(word);
@@ -224,7 +224,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn start_word_too_long() {
-        let solver = Solver::new(false)
+        let _solver = Solver::new(false)
             .with_start_word("too-long")
             .expect("Should panic with word too long");
     }

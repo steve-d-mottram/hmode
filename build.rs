@@ -51,7 +51,7 @@ fn main() -> Result<(), String> {
     let out_dir = env::var_os("OUT_DIR").ok_or("Could not read environment variable 'OUT_DIR'")?;
     let dest_path = Path::new(&out_dir).join("words-generated.rs");
     fs::write(
-        &dest_path,
+        dest_path,
         format!(
             r#"
 static ALL_WORDS: &[WdlWord] = &[{} ];
@@ -63,7 +63,7 @@ static ANSWER_WORDS_END : usize = {};
             answer_words_len
         ),
     )
-    .map_err(|e| String::from(format!("{}", e)))?;
+    .map_err(|e| format!("{}", e))?;
     println!("cargo:rerun-if-changed=data/");
     Ok(())
 }

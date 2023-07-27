@@ -35,9 +35,9 @@ pub fn to_static_word(word: &str, answers_only: bool, alt_words: bool) -> Result
     // Return the matching word in the static
     // probe word list, or an error if it's not in the list.
     if let Some(entry) = list.iter().find(|&&&w| w == temp) {
-        return Ok(entry);
+        Ok(entry)
     } else {
-        return Err(format!("The word '{}' is not in the list of valid words", word).into());
+        Err(format!("The word '{}' is not in the list of valid words", word))
     }
 }
 

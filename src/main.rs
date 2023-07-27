@@ -37,13 +37,13 @@ impl std::fmt::Display for Stats {
         // operation succeeded or failed. Note that `write!` uses syntax which
         // is very similar to `println!`.
         write!(f, "\nAverage solving steps : {}\n", self.0)?;
-        if self.1.len() > 0 {
+        if !self.1.is_empty() {
             write!(f, "\nOutliers\n")?;
             for outlier in &self.1 {
-                write!(f, "{} : {}\n", outlier.0, outlier.1)?;
+                writeln!(f, "{} : {}", outlier.0, outlier.1)?;
             }
         }
-        write!(f, "\n")
+        writeln!(f)
     }
 }
 
@@ -126,7 +126,7 @@ fn main() -> Result<(), String> {
                 "Calculating statistics for start word \"{}\". This may take some time.",
                 s
             );
-            println!("{}", stats_for_start_word(&s.as_str(), cli.alt_words)?);
+            println!("{}", stats_for_start_word(s.as_str(), cli.alt_words)?);
             Ok(())
         }
         Cli { demo: Some(d), .. } => Ok(demo(d.as_str(), cli.alt_words)?),
