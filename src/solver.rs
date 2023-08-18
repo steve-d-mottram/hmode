@@ -103,11 +103,10 @@ impl Solver {
         for probe in &self.probe_words {
             let mut total_diff = 0;
             for word in &self.words {
-                let mut cpy = self.words.clone();
                 let setter = Setter::from_word(word);
-                cpy = Solver::filter(&cpy, setter.check(probe));
-                if !cpy.is_empty() {
-                    let diff = start_len - cpy.len();
+                let filtered = Solver::filter(&self.words, setter.check(probe));
+                if !filtered.is_empty() {
+                    let diff = start_len - filtered.len();
                     total_diff += diff;
                 }
             }
