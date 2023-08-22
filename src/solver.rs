@@ -31,22 +31,13 @@ impl Solver {
     }
 
     fn filter(list: &[&'static [u8; 5]], clues: CheckResult) -> Vec<&'static [u8; 5]> {
-        // Split clues into separate collections
-        let mut exacts: Vec<(usize, u8)> = Vec::with_capacity(5);
-        let mut wrongs: Vec<u8> = Vec::with_capacity(5);
-        let mut elsewheres: Vec<(usize, u8)> = Vec::with_capacity(5);
         let mut confirmed_letters: Vec<u8> = Vec::with_capacity(5);
-        for (i, clue) in clues.into_iter().enumerate() {
+        for clue in clues.iter() {
             match clue {
-                Clue::Right(c) => {
-                    exacts.push((i, c));
-                    confirmed_letters.push(c);
+                Clue::Right(c) | Clue::Elsewhere(c) => {
+                    confirmed_letters.push(*c);
                 }
-                Clue::Wrong(c) => wrongs.push(c),
-                Clue::Elsewhere(c) => {
-                    elsewheres.push((i, c));
-                    confirmed_letters.push(c);
-                }
+                _ => {}
             }
         }
 
@@ -54,21 +45,27 @@ impl Solver {
         let result: Vec<&'static [u8; 5]> = list
             .iter()
             .filter_map(|&word| {
-                for &c in &wrongs {
-                    // We can get a Wrong(c) if the letter c also occurs elsewhere in the word and
-                    // has already been accounted for in exact matches or elsewheres
-                    if word.contains(&c) && !confirmed_letters.contains(&c) {
-                        return None;
-                    }
-                }
-                for &(i, c) in &exacts {
-                    if word[i] != c {
-                        return None;
-                    }
-                }
-                for &(i, c) in &elsewheres {
-                    if (!word.contains(&c)) || word[i] == c {
-                        return None;
+                for (i, clue) in clues.into_iter().enumerate() {
+                    match clue {
+                        Clue::Wrong(c) => {
+                            // A letter can be marked as Wrong (gray) if the same letter is
+                            // present in the word but already accounted for by a Right (green)
+                            // or Elsewhere (orange) clue, so we can only eliminate words containing
+                            // the letter if the letter doesn't exist elsewhere in the clues.
+                            if word.contains(&c) && !confirmed_letters.contains(&c) {
+                                return None;
+                            }
+                        }
+                        Clue::Right(c) => {
+                            if word[i] != c {
+                                return None;
+                            }
+                        }
+                        Clue::Elsewhere(c) => {
+                            if (!word.contains(&c)) || word[i] == c {
+                                return None;
+                            }
+                        }
                     }
                 }
                 Some(word)
