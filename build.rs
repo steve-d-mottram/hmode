@@ -9,7 +9,7 @@ const ALT_PROBE_WORDS_PATH: &str = "data/alt-probe-words.txt";
 
 fn read_file(source: &str) -> Result<Vec<String>, String> {
     let l = fs::read_to_string(source)
-        .map_err(|e| format!("Error reading file {}, {}", source, e))?
+        .map_err(|e| format!("Error reading file {source}, {e}"))?
         .lines()
         .map(String::from)
         .collect();
@@ -19,7 +19,7 @@ fn read_file(source: &str) -> Result<Vec<String>, String> {
 fn list_to_static(words: Vec<String>) -> String {
     let mut text = String::with_capacity(words.len() * 10);
     for word in words {
-        text.push_str(&format!("b\"{}\", ", word));
+        text.push_str(&format!("*b\"{word}\", "));
     }
     text
 }
@@ -37,7 +37,7 @@ fn get_word_list(answer_file: &str, probe_file: &str) -> Result<(Vec<String>, us
     let answer_words_len = answer_words.len();
     let mut probe_words: BTreeSet<String> = read_file(probe_file)?.into_iter().collect();
     for word in &answer_words {
-        _ = probe_words.remove(word)
+        _ = probe_words.remove(word);
     }
     answer_words.extend(probe_words);
 
@@ -63,7 +63,7 @@ static ANSWER_WORDS_END : usize = {};
             answer_words_len
         ),
     )
-    .map_err(|e| format!("{}", e))?;
+    .map_err(|e| format!("{e}"))?;
     println!("cargo:rerun-if-changed=data/");
     Ok(())
 }

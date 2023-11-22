@@ -3,9 +3,9 @@ use crate::words::*;
 
 #[derive(Debug, Clone)]
 pub struct Solver {
-    words: Vec<&'static [u8; 5]>,
-    start_word: &'static [u8; 5],
-    probe_words: Vec<&'static [u8; 5]>,
+    words: Vec<[u8; 5]>,
+    start_word: [u8; 5],
+    probe_words: Vec<[u8; 5]>,
     guesses: u32,
     use_alt_words: bool,
 }
@@ -13,9 +13,9 @@ pub struct Solver {
 impl Solver {
     pub fn new(alt_words: bool) -> Self {
         Solver {
-            words: answer_words(),
+            words: answers(),
             start_word: DEFAULT_START_WORD,
-            probe_words: all_words(alt_words),
+            probe_words: all(alt_words),
             guesses: 0,
             use_alt_words: alt_words,
         }
@@ -30,7 +30,7 @@ impl Solver {
         self.guesses
     }
 
-    fn filter(list: &[&'static [u8; 5]], clues: CheckResult) -> Vec<&'static [u8; 5]> {
+    fn filter(list: &[[u8; 5]], clues: CheckResult) -> Vec<[u8; 5]> {
         let mut confirmed_letters: Vec<u8> = Vec::with_capacity(5);
         for clue in clues.iter() {
             match clue {
@@ -42,7 +42,7 @@ impl Solver {
         }
 
         // Apply position-specific filters to word list
-        let result: Vec<&'static [u8; 5]> = list
+        let result: Vec<[u8; 5]> = list
             .iter()
             .filter_map(|&word| {
                 for (i, clue) in clues.into_iter().enumerate() {
@@ -79,7 +79,7 @@ impl Solver {
         self.probe_words = Self::filter(&self.probe_words, clues);
     }
 
-    pub fn guess(&mut self) -> &'static [u8; 5] {
+    pub fn guess(&mut self) -> [u8; 5] {
         // The exhaustive algorithm is too slow to select the first guess before the
         // answer word list has been pruned, so we have a pre-selected starting word
         if self.guesses == 0 {
@@ -95,13 +95,13 @@ impl Solver {
             return self.words[0];
         }
         let mut best_reduction = 0;
-        let mut best_word: Option<&'static [u8; 5]> = None;
+        let mut best_word: Option<[u8; 5]> = None;
         let start_len = self.words.len();
         for probe in &self.probe_words {
             let mut total_diff = 0;
             for word in &self.words {
-                let setter = Setter::from_word(word);
-                let filtered = Solver::filter(&self.words, setter.check(probe));
+                let setter = Setter::from_word(*word);
+                let filtered = Solver::filter(&self.words, setter.check(*probe));
                 if !filtered.is_empty() {
                     let diff = start_len - filtered.len();
                     total_diff += diff;
@@ -109,7 +109,7 @@ impl Solver {
             }
             if total_diff > best_reduction {
                 best_reduction = total_diff;
-                best_word = Some(probe);
+                best_word = Some(*probe);
             }
         }
 
@@ -163,8 +163,8 @@ mod tests {
     #[test]
     #[ignore] // This test is very slow. To run, use 'cargo test --ignored' or 'cargo test --include-ignored'
     fn test_some_words() {
-        for word in answer_words().into_iter().take(500) {
-            println!("Testing : {}", std::str::from_utf8(word).unwrap());
+        for word in answers().into_iter().take(500) {
+            println!("Testing : {}", std::str::from_utf8(&word).unwrap());
             let mut solver = Solver::new(false);
             let setter = Setter::from_word(word);
             let mut guess;
@@ -185,7 +185,7 @@ mod tests {
 
     #[test]
     fn repeated_wrong_letter_does_not_eliminate_right_letters() {
-        let setter = Setter::from_word(b"crook");
+        let setter = Setter::from_word(*b"crook");
         let mut solver = Solver::new(false);
         //        let mut guess = b"xxxxx";
         let (guess, clues) = loop {
@@ -208,13 +208,13 @@ mod tests {
                 Clue::Right(b'k')
             ]
         );
-        assert_eq!(guess, b"crook");
+        assert_eq!(guess, *b"crook");
     }
 
     #[test]
     fn start_word() {
         let solver = Solver::new(false).with_start_word("winch").unwrap();
-        assert_eq!(std::str::from_utf8(solver.start_word).unwrap(), "winch");
+        assert_eq!(std::str::from_utf8(&solver.start_word).unwrap(), "winch");
     }
 
     #[test]

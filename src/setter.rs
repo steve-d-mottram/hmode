@@ -1,4 +1,4 @@
-use crate::words::*;
+use crate::words::{answers, to_static_word};
 use rand::distributions::{Distribution, Uniform};
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -20,20 +20,20 @@ pub type CheckResult = [Clue; 5];
 
 #[derive(Debug)]
 pub struct Setter {
-    chosen: &'static [u8; 5],
+    chosen: [u8; 5],
 }
 
 impl Setter {
     #[allow(dead_code)]
     pub fn new() -> Self {
-        let w = answer_words();
+        let w = answers();
         let range = Uniform::new(0usize, w.len());
         let mut rng = rand::thread_rng();
         let index = range.sample(&mut rng);
         Self::from_word(w[index])
     }
 
-    pub fn from_word(word: &'static [u8; 5]) -> Self {
+    pub fn from_word(word: [u8; 5]) -> Self {
         Setter { chosen: word }
     }
 
@@ -42,7 +42,7 @@ impl Setter {
         Ok(Self::from_word(w))
     }
 
-    pub fn check(&self, word: &[u8; 5]) -> CheckResult {
+    pub fn check(&self, word: [u8; 5]) -> CheckResult {
         let mut excluded_word: Vec<bool> = [false, false, false, false, false].into();
         let mut excluded_self = excluded_word.clone();
 
@@ -80,12 +80,12 @@ mod test {
     use super::*;
 
     fn mock_setter() -> Setter {
-        Setter::from_word(b"abcce")
+        Setter::from_word(*b"abcce")
     }
 
     #[test]
     fn check_no_match() {
-        let test = b"fghij";
+        let test = *b"fghij";
         let result = mock_setter().check(test);
         let mut n: usize = 0;
         for i in result {
@@ -96,7 +96,7 @@ mod test {
 
     #[test]
     fn check_1_match() {
-        let result = mock_setter().check(b"fbhij");
+        let result = mock_setter().check(*b"fbhij");
         assert_eq!(
             result,
             [
@@ -111,7 +111,7 @@ mod test {
 
     #[test]
     fn check_2_match() {
-        let result = mock_setter().check(b"fbhcj");
+        let result = mock_setter().check(*b"fbhcj");
         assert_eq!(
             result,
             [
@@ -126,7 +126,7 @@ mod test {
 
     #[test]
     fn check_1_elsewhere() {
-        let result = mock_setter().check(b"fgahj");
+        let result = mock_setter().check(*b"fgahj");
         assert_eq!(
             result,
             [
@@ -141,7 +141,7 @@ mod test {
 
     #[test]
     fn check_match_only_counted_once() {
-        let result = mock_setter().check(b"bbbbb");
+        let result = mock_setter().check(*b"bbbbb");
         assert_eq!(
             result,
             [
@@ -156,7 +156,7 @@ mod test {
 
     #[test]
     fn real_world() {
-        let result = Setter::from_word(b"maybe").check(b"cable");
+        let result = Setter::from_word(*b"maybe").check(*b"cable");
         assert_eq!(
             result,
             [

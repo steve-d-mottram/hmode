@@ -55,7 +55,7 @@ fn heartbeat() {
 fn stats_for_start_word(start_word: &str, alt_words: bool) -> Result<Stats, String> {
     let mut total_guesses: u32 = 0;
     let mut outliers: Vec<Outlier> = Vec::new();
-    for word in words::answer_words() {
+    for word in words::answers() {
         let mut solver = solver::Solver::new(alt_words).with_start_word(start_word)?;
         let setter = setter::Setter::from_word(word);
         let mut guess;
@@ -69,7 +69,7 @@ fn stats_for_start_word(start_word: &str, alt_words: bool) -> Result<Stats, Stri
                 total_guesses += solver.guesses();
                 if solver.guesses() > 6 {
                     outliers.push(Outlier(
-                        std::str::from_utf8(guess).unwrap().into(),
+                        std::str::from_utf8(&guess).unwrap().into(),
                         solver.guesses(),
                     ));
                 }
@@ -79,7 +79,7 @@ fn stats_for_start_word(start_word: &str, alt_words: bool) -> Result<Stats, Stri
         }
     }
     Ok(Stats(
-        total_guesses as f32 / words::answer_words().len() as f32,
+        total_guesses as f32 / words::answers().len() as f32,
         outliers,
     ))
 }
@@ -96,13 +96,13 @@ fn demo(target: &str, alt_words: bool) -> Result<(), String> {
         {
             println!(
                 "solved : {}",
-                std::str::from_utf8(guess).map_err(|e| e.to_string())?
+                std::str::from_utf8(&guess).map_err(|e| e.to_string())?
             );
             break;
         }
         println!(
             "Guessing : {}",
-            std::str::from_utf8(guess).map_err(|e| e.to_string())?
+            std::str::from_utf8(&guess).map_err(|e| e.to_string())?
         );
         solver.filter_self(result);
     }
@@ -110,8 +110,8 @@ fn demo(target: &str, alt_words: bool) -> Result<(), String> {
 }
 
 fn list_all_words(alt_words: bool) {
-    for i in words::all_words(alt_words) {
-        println!("{}", std::str::from_utf8(i).expect("Invalid utf8"));
+    for i in words::all(alt_words) {
+        println!("{}", std::str::from_utf8(&i).expect("Invalid utf8"));
     }
 }
 
