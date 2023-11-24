@@ -90,6 +90,7 @@ fn demo(target: &str, alt_words: bool) -> Result<(), String> {
     loop {
         let guess = solver.guess();
         let result = setter.check(guess);
+        solver.filter_self(result);
 
         if let [Clue::Right(_), Clue::Right(_), Clue::Right(_), Clue::Right(_), Clue::Right(_)] =
             result
@@ -101,10 +102,10 @@ fn demo(target: &str, alt_words: bool) -> Result<(), String> {
             break;
         }
         println!(
-            "Guessing : {}",
-            std::str::from_utf8(&guess).map_err(|e| e.to_string())?
+            "Guessing : {}, {}",
+            std::str::from_utf8(&guess).map_err(|e| e.to_string())?,
+            solver.remaining()
         );
-        solver.filter_self(result);
     }
     Ok(())
 }
@@ -122,10 +123,7 @@ fn main() -> Result<(), String> {
             start_word: Some(s),
             ..
         } => {
-            println!(
-                "Calculating statistics for start word \"{}\". This may take some time.",
-                s
-            );
+            println!("Calculating statistics for start word \"{s}\". This may take some time.");
             println!("{}", stats_for_start_word(s.as_str(), cli.alt_words)?);
             Ok(())
         }
