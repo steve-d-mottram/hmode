@@ -43,8 +43,8 @@ impl Setter {
     }
 
     pub fn check(&self, word: [u8; 5]) -> CheckResult {
-        let mut excluded_word: Vec<bool> = [false, false, false, false, false].into();
-        let mut excluded_self = excluded_word.clone();
+        let mut chosen_copy = self.chosen;
+        let mut word_copy = word;
 
         // result defaults to all "grey"
         let mut result: Vec<Clue> = Vec::with_capacity(5);
@@ -53,22 +53,25 @@ impl Setter {
         }
 
         // Record exact matches
-        for i in 0..5 {
-            if word[i] == self.chosen[i] {
-                result[i] = Clue::Right(word[i]);
-                excluded_word[i] = true;
-                excluded_self[i] = true;
-            }
-        }
+
+        self.chosen
+            .iter()
+            .zip(word.iter())
+            .enumerate()
+            .for_each(|(i, (&my, &other))| {
+                if my == other {
+                    result[i] = Clue::Right(my);
+                    chosen_copy[i] = 0;
+                    word_copy[i] = 255;
+                }
+            });
 
         // Record "orange" matches
         for i in 0..5 {
-            for j in MAP_OTHERS[i] {
-                if !(excluded_word[i] || excluded_self[j]) && (self.chosen[j] == word[i]) {
-                    result[i] = Clue::Elsewhere(word[i]);
-                    excluded_word[i] = true;
-                    excluded_self[j] = true;
-                }
+            if let Some(p) = chosen_copy.iter().position(|&c| word_copy[i] == c) {
+                chosen_copy[p] = 0;
+                word_copy[i] = 255;
+                result[i] = Clue::Elsewhere(word[i]);
             }
         }
         [result[0], result[1], result[2], result[3], result[4]]
@@ -81,6 +84,21 @@ mod test {
 
     fn mock_setter() -> Setter {
         Setter::from_word(*b"abcce")
+    }
+
+    #[test]
+    fn elsewhere_must_not_override_wrong() {
+        let result = Setter::from_word(*b"abccd").check(*b"fccgh");
+        assert_eq!(
+            result,
+            [
+                Clue::Wrong(b'f'),
+                Clue::Elsewhere(b'c'),
+                Clue::Right(b'c'),
+                Clue::Wrong(b'g'),
+                Clue::Wrong(b'h'),
+            ]
+        )
     }
 
     #[test]
@@ -150,6 +168,21 @@ mod test {
                 Clue::Wrong(b'b'),
                 Clue::Wrong(b'b'),
                 Clue::Wrong(b'b')
+            ]
+        );
+    }
+
+    #[test]
+    fn check_exact_overides_elsewhere() {
+        let result = Setter::from_word(*b"abcde").check(*b"hccij");
+        assert_eq!(
+            result,
+            [
+                Clue::Wrong(b'h'),
+                Clue::Wrong(b'c'),
+                Clue::Right(b'c'),
+                Clue::Wrong(b'i'),
+                Clue::Wrong(b'j')
             ]
         );
     }

@@ -55,7 +55,7 @@ impl Solver {
                         // present in the word but already accounted for by a Right (green)
                         // or Elsewhere (orange) clue, so we can only eliminate words containing
                         // the letter if the letter doesn't exist elsewhere in the clues.
-                        if word.contains(&c) && !confirmed_letters.contains(&c) {
+                        if word[i] == c || (word.contains(&c) && !confirmed_letters.contains(&c)) {
                             return None;
                         }
                     }
