@@ -17,6 +17,39 @@ pub fn answers() -> Vec<WdlWord> {
     ALL_WORDS[0..ANSWER_WORDS_END].to_vec()
 }
 
+#[derive(PartialEq, Debug, Copy, Clone)]
+pub enum Tagged {
+    Answer(WdlWord),
+    Probe(WdlWord),
+}
+
+impl Tagged {
+    pub fn unwrap(self) -> WdlWord {
+        match self {
+            Self::Answer(w) => w,
+            Self::Probe(w) => w,
+        }
+    }
+
+    pub fn is_answer(self) -> bool {
+        match self {
+            Self::Answer(_) => true,
+            _ => false,
+        }
+    }
+}
+
+pub fn tagged() -> Vec<Tagged> {
+    let answers = ALL_WORDS[0..ANSWER_WORDS_END]
+        .iter()
+        .map(|&w| Tagged::Answer(w));
+    let probes = ALL_WORDS[ANSWER_WORDS_END..ALL_WORDS.len()]
+        .iter()
+        .map(|&w| Tagged::Probe(w));
+    let t: Vec<Tagged> = answers.chain(probes).collect();
+    t
+}
+
 /// Validates that the provided word is in the list of all allowed
 /// words, and returns a static reference to the word in the list.
 /// This simplifies lifetime management for client code.
@@ -48,6 +81,24 @@ pub fn to_static_word(word: &str, answers_only: bool, alt_words: bool) -> Result
 mod tests {
     use super::*;
 
+    #[test]
+    fn check_tagged() {
+        let list = tagged();
+        assert_eq!(list.len(), all(false).len());
+        assert_eq!(list[0], Tagged::Answer(all(false)[0]));
+        assert_eq!(
+            *(list.last().unwrap()),
+            Tagged::Probe(*(all(false).last().unwrap()))
+        );
+        let start_of_probe = list
+            .iter()
+            .find(|item| match item {
+                Tagged::Probe(_) => true,
+                _ => false,
+            })
+            .unwrap();
+        assert_eq!(Tagged::Probe(all(false)[ANSWER_WORDS_END]), *start_of_probe);
+    }
     #[test]
     fn to_static_word_finds_known_word() {
         assert_eq!(to_static_word("grass", false, false), Ok(*b"grass"));

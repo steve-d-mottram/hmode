@@ -1,11 +1,12 @@
+use std::ops::Deref;
+
 use crate::setter::{CheckResult, Clue, Setter};
-use crate::words::{all, answers, to_static_word, DEFAULT_START_WORD};
+use crate::words::{tagged, to_static_word, Tagged, DEFAULT_START_WORD};
 
 #[derive(Debug, Clone)]
 pub struct Solver {
-    words: Vec<[u8; 5]>,
+    words: Vec<Tagged>,
     start_word: [u8; 5],
-    probe_words: Vec<[u8; 5]>,
     guesses: u32,
     use_alt_words: bool,
 }
@@ -13,9 +14,8 @@ pub struct Solver {
 impl Solver {
     pub fn new(alt_words: bool) -> Self {
         Solver {
-            words: answers(),
+            words: tagged(),
             start_word: DEFAULT_START_WORD,
-            probe_words: all(alt_words),
             guesses: 0,
             use_alt_words: alt_words,
         }
@@ -34,7 +34,7 @@ impl Solver {
         self.words.len()
     }
 
-    fn filter(list: &[[u8; 5]], clues: CheckResult) -> Vec<[u8; 5]> {
+    fn filter(list: &[Tagged], clues: CheckResult) -> Vec<Tagged> {
         let mut confirmed_letters: Vec<u8> = Vec::with_capacity(5);
         for clue in &clues {
             match clue {
@@ -46,8 +46,9 @@ impl Solver {
         }
 
         // Apply position-specific filters to word list
-        let mut result: Vec<[u8; 5]> = Vec::with_capacity(list.len());
-        result.extend(list.iter().filter_map(|&word| {
+        let mut result: Vec<Tagged> = Vec::with_capacity(list.len());
+        result.extend(list.iter().filter_map(|&tag| {
+            let word = tag.unwrap();
             for (i, clue) in clues.into_iter().enumerate() {
                 match clue {
                     Clue::Wrong(c) => {
@@ -71,14 +72,14 @@ impl Solver {
                     }
                 }
             }
-            Some(word)
+            Some(tag)
         }));
         result
     }
 
     pub fn filter_self(&mut self, clues: CheckResult) {
         self.words = Self::filter(&self.words, clues);
-        self.probe_words = Self::filter(&self.probe_words, clues);
+        // self.probe_words = Self::filter(&self.probe_words, clues);
     }
 
     pub fn guess(&mut self) -> [u8; 5] {
@@ -89,21 +90,23 @@ impl Solver {
             return self.start_word;
         }
         assert!(!self.words.is_empty(), "Guess called with empty word list");
-        assert!(
-            !self.probe_words.is_empty(),
-            "Guess called with empty probe word list"
-        );
         if self.words.len() == 1 {
-            return self.words[0];
+            return self.words[0].unwrap();
         }
         let mut best_reduction = 0;
         let mut best_word: Option<[u8; 5]> = None;
         let start_len = self.words.len();
-        for probe in &self.probe_words {
+        self.words.iter().for_each(|&probe| {
+            let probe_word = probe.unwrap();
             let mut total_diff = 0;
-            for word in &self.words {
-                let setter = Setter::from_word(*word);
-                let filtered = Solver::filter(&self.words, setter.check(*probe));
+            for word in self
+                .words
+                .iter()
+                .take_while(|&tag| tag.is_answer())
+                .map(|&tag| tag.unwrap())
+            {
+                let setter = Setter::from_word(word);
+                let filtered = Solver::filter(&self.words, setter.check(probe_word));
                 if !filtered.is_empty() {
                     let diff = start_len - filtered.len();
                     total_diff += diff;
@@ -111,21 +114,18 @@ impl Solver {
             }
             if total_diff > best_reduction {
                 best_reduction = total_diff;
-                best_word = Some(*probe);
+                best_word = Some(probe_word);
             }
-        }
+        });
 
         self.guesses += 1;
         let result = best_word.unwrap_or_else(|| {
-            panic!(
-                "No probe word was selected. words : {:?}, probe_words : {:?}",
-                self.words, self.probe_words
-            )
+            panic!("No probe word was selected.");
         });
 
         // Remove the guess word from the probe_words list as we should never
         // re-use a guess
-        self.probe_words.retain(|w| *w != result);
+        //self.probe_words.retain(|w| *w != result);
         result
     }
 }
@@ -154,18 +154,18 @@ mod tests {
 
         for word in filtered {
             for c in b"bcd" {
-                assert!(!word.contains(c));
+                assert!(!word.unwrap().contains(c));
             }
-            assert_eq!(word[0], b'a');
-            assert_ne!(word[4], b'e');
-            assert!(word.contains(&b'e'));
+            assert_eq!(word.unwrap()[0], b'a');
+            assert_ne!(word.unwrap()[4], b'e');
+            assert!(word.unwrap().contains(&b'e'));
         }
     }
 
     #[test]
     #[ignore] // This test is very slow. To run, use 'cargo test --ignored' or 'cargo test --include-ignored'
     fn test_some_words() {
-        for word in answers().into_iter().take(500) {
+        for word in tagged().into_iter().map(|tag| tag.unwrap()).take(500) {
             println!("Testing : {}", std::str::from_utf8(&word).unwrap());
             let mut solver = Solver::new(false);
             let setter = Setter::from_word(word);
@@ -196,7 +196,7 @@ mod tests {
             {
                 solver.filter_self(clues);
             }
-            if !solver.probe_words.contains(&b"crook") {
+            if !solver.words.contains(&Tagged::Answer(*b"crook")) {
                 break (guess, clues);
             }
         };
