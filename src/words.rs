@@ -17,6 +17,14 @@ pub fn answers() -> Vec<WdlWord> {
     ALL_WORDS[0..ANSWER_WORDS_END].to_vec()
 }
 
+pub fn probes(alt_words: bool) -> Vec<WdlWord> {
+    if alt_words {
+        ALT_WORDS[ANSWER_WORDS_END..].to_vec()
+    } else {
+        ALL_WORDS[ANSWER_WORDS_END..].to_vec()
+    }
+}
+
 /// Validates that the provided word is in the list of all allowed
 /// words, and returns a static reference to the word in the list.
 /// This simplifies lifetime management for client code.

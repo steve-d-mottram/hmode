@@ -1,6 +1,7 @@
 mod setter;
 mod solver;
 mod words;
+mod lists;
 
 use clap::Parser;
 use setter::Clue;
