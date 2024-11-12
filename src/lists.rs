@@ -3,10 +3,14 @@ use crate::{
     words::{answers, probes, WdlWord},
 };
 
+use std::fmt;
+
+#[derive(Clone)]
 pub struct WordList {
     answers: Vec<WdlWord>,
     probes: Vec<WdlWord>,
 }
+
 impl WordList {
     pub fn new(alt: bool) -> Self {
         WordList {
@@ -63,6 +67,26 @@ impl WordList {
             Some(word)
         }));
         result
+    }
+
+    pub fn filter_self(&mut self, clues: CheckResult) {
+        self.answers = Self::filter(&self.answers, clues);
+        self.probes = Self::filter(&self.probes, clues);
+    }
+
+    pub fn len(&self) -> usize {
+        self.answers.len()
+    }
+}
+
+impl fmt::Debug for WordList {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "WordList{{ answers: {}, probes: {} }}",
+            self.answers.len(),
+            self.probes.len()
+        )
     }
 }
 

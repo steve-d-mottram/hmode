@@ -1,23 +1,22 @@
+use crate::lists::WordList;
 use crate::setter::{CheckResult, Clue, Setter};
-use crate::words::{all, answers, to_static_word, DEFAULT_START_WORD};
+use crate::words::{self, to_static_word, DEFAULT_START_WORD};
 
 #[derive(Debug, Clone)]
 pub struct Solver {
-    words: Vec<[u8; 5]>,
-    start_word: [u8; 5],
-    probe_words: Vec<[u8; 5]>,
-    guesses: u32,
+    words: WordList,
+    start_word: words::WdlWord,
     use_alt_words: bool,
+    guesses: u32,
 }
 
 impl Solver {
     pub fn new(alt_words: bool) -> Self {
         Solver {
-            words: answers(),
+            words: WordList::new(alt_words),
             start_word: DEFAULT_START_WORD,
-            probe_words: all(alt_words),
-            guesses: 0,
             use_alt_words: alt_words,
+            guesses: 0,
         }
     }
 
@@ -32,48 +31,6 @@ impl Solver {
 
     pub fn remaining(&self) -> usize {
         self.words.len()
-    }
-
-    fn filter(list: &[[u8; 5]], clues: CheckResult) -> Vec<[u8; 5]> {
-        let mut confirmed_letters: Vec<u8> = Vec::with_capacity(5);
-        for clue in &clues {
-            match clue {
-                Clue::Right(c) | Clue::Elsewhere(c) => {
-                    confirmed_letters.push(*c);
-                }
-                Clue::Wrong(_) => {}
-            }
-        }
-
-        // Apply position-specific filters to word list
-        let mut result: Vec<[u8; 5]> = Vec::with_capacity(list.len());
-        result.extend(list.iter().filter_map(|&word| {
-            for (i, clue) in clues.into_iter().enumerate() {
-                match clue {
-                    Clue::Wrong(c) => {
-                        // A letter can be marked as Wrong (gray) if the same letter is
-                        // present in the word but already accounted for by a Right (green)
-                        // or Elsewhere (orange) clue, so we can only eliminate words containing
-                        // the letter if the letter doesn't exist elsewhere in the clues.
-                        if word[i] == c || (word.contains(&c) && !confirmed_letters.contains(&c)) {
-                            return None;
-                        }
-                    }
-                    Clue::Right(c) => {
-                        if word[i] != c {
-                            return None;
-                        }
-                    }
-                    Clue::Elsewhere(c) => {
-                        if (!word.contains(&c)) || word[i] == c {
-                            return None;
-                        }
-                    }
-                }
-            }
-            Some(word)
-        }));
-        result
     }
 
     pub fn filter_self(&mut self, clues: CheckResult) {
