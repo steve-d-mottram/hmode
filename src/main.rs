@@ -15,6 +15,11 @@ struct Cli {
     /// given a specific starting word. This may take several minutes
     /// to run on typical desktop hardware.
     start_word: Option<String>,
+    /// Identifies the optimal starting words for Wordle by calculating
+    /// the average reduction in the answer list size. This may take several minutes
+    /// to run on typical desktop hardware.
+    #[arg(long)]
+    find_optimal_start: bool,
     /// Performs a demo of the solver, where the provided word is the solution
     #[arg(short, long)]
     demo: Option<String>,
@@ -65,7 +70,7 @@ fn stats_for_start_word(start_word: &str, alt_words: bool) -> Result<Stats, Stri
             if let [Clue::Right(_), Clue::Right(_), Clue::Right(_), Clue::Right(_), Clue::Right(_)] =
                 result
             {
-                heartbeat();
+ //               heartbeat();
                 total_guesses += solver.guesses();
                 if solver.guesses() > 6 {
                     outliers.push(Outlier(
@@ -82,6 +87,69 @@ fn stats_for_start_word(start_word: &str, alt_words: bool) -> Result<Stats, Stri
         total_guesses as f32 / words::answers().len() as f32,
         outliers,
     ))
+}
+
+#[derive(Debug)]
+struct StartWordRanking(String, f32);
+
+fn find_optimal_start_word(alt_words: bool) -> Result<(), String> {
+    let answer_words = words::answers();
+    let initial_answer_count = answer_words.len() as f32;
+    let mut rankings: Vec<StartWordRanking> = Vec::new();
+
+    // Iterate through all candidate words
+    for start_word in words::all(alt_words) {
+        let start_word_str = std::str::from_utf8(&start_word)
+            .map_err(|e| format!("Invalid UTF-8: {}", e))?
+            .to_string();
+        
+        let mut total_reduction: f32 = 0.0;
+        
+        // For each answer word, calculate the reduction in answer list size
+        for answer_word in &answer_words {
+            let mut solver = solver::Solver::new(alt_words).with_start_word(&start_word_str)?;
+            let setter = setter::Setter::from_word(*answer_word);
+            
+            // Get the first guess
+            let guess = solver.guess();
+            
+            // Check the guess against the setter
+            let result = setter.check(guess);
+            
+            // Filter the solver with the result
+            solver.filter_self(result);
+            
+            // Calculate the reduction in answer list size
+            let remaining_count = solver.remaining() as f32;
+            let reduction = initial_answer_count - remaining_count;
+            total_reduction += reduction;
+        }
+        
+        // Calculate average reduction
+        let average_reduction = total_reduction / answer_words.len() as f32;
+        let score = StartWordRanking(start_word_str, average_reduction);
+        writeln!(std::io::stdout(), "Score: {} : {:.2}", score.0, score.1).unwrap();
+        // Keep track of top 10
+        rankings.push(score);
+        
+        // Sort and keep only top 10 if we have more than 10
+        if rankings.len() > 10 {
+            rankings.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+            rankings.truncate(10);
+        }
+        
+        heartbeat();
+    }
+    
+    // Final sort
+    rankings.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+    
+    println!("\n\nTop 10 optimal starting words (by average answer list reduction):");
+    for (i, ranking) in rankings.iter().enumerate() {
+        println!("{:2}. {} : {:.2}", i + 1, ranking.0, ranking.1);
+    }
+    
+    Ok(())
 }
 
 fn demo(target: &str, alt_words: bool) -> Result<(), String> {
@@ -125,6 +193,14 @@ fn main() -> Result<(), String> {
         } => {
             println!("Calculating statistics for start word \"{s}\". This may take some time.");
             println!("{}", stats_for_start_word(s.as_str(), cli.alt_words)?);
+            Ok(())
+        }
+        Cli {
+            find_optimal_start: true,
+            ..
+        } => {
+            println!("Finding optimal start word. This may take several minutes.");
+            find_optimal_start_word(cli.alt_words)?;
             Ok(())
         }
         Cli { demo: Some(d), .. } => Ok(demo(d.as_str(), cli.alt_words)?),

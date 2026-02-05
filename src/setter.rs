@@ -8,14 +8,6 @@ pub enum Clue {
     Right(u8),
 }
 
-const MAP_OTHERS: [[usize; 4]; 5] = [
-    [1, 2, 3, 4],
-    [0, 2, 3, 4],
-    [0, 1, 3, 4],
-    [0, 1, 2, 4],
-    [0, 1, 2, 3],
-];
-
 pub type CheckResult = [Clue; 5];
 
 #[derive(Debug)]
