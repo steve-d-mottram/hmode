@@ -60,7 +60,7 @@ fn heartbeat() {
 fn stats_for_start_word(start_word: &str, alt_words: bool) -> Result<Stats, String> {
     let mut total_guesses: u32 = 0;
     let mut outliers: Vec<Outlier> = Vec::new();
-    for word in words::answers() {
+    for &word in words::answers() {
         let mut solver = solver::Solver::new(alt_words).with_start_word(start_word)?;
         let setter = setter::Setter::from_word(word);
         let mut guess;
@@ -98,7 +98,7 @@ fn find_optimal_start_word(alt_words: bool) -> Result<(), String> {
     let mut rankings: Vec<StartWordRanking> = Vec::new();
 
     // Iterate through all candidate words
-    for start_word in words::all(alt_words) {
+    for &start_word in words::all(alt_words) {
         let start_word_str = std::str::from_utf8(&start_word)
             .map_err(|e| format!("Invalid UTF-8: {}", e))?
             .to_string();
@@ -106,9 +106,9 @@ fn find_optimal_start_word(alt_words: bool) -> Result<(), String> {
         let mut total_reduction: f32 = 0.0;
         
         // For each answer word, calculate the reduction in answer list size
-        for answer_word in &answer_words {
+        for &answer_word in answer_words {
             let mut solver = solver::Solver::new(alt_words).with_start_word(&start_word_str)?;
-            let setter = setter::Setter::from_word(*answer_word);
+            let setter = setter::Setter::from_word(answer_word);
             
             // Get the first guess
             let guess = solver.guess();
@@ -179,7 +179,7 @@ fn demo(target: &str, alt_words: bool) -> Result<(), String> {
 }
 
 fn list_all_words(alt_words: bool) {
-    for i in words::all(alt_words) {
+    for &i in words::all(alt_words) {
         println!("{}", std::str::from_utf8(&i).expect("Invalid utf8"));
     }
 }

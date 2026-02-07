@@ -39,10 +39,13 @@ impl Setter {
         let mut word_copy = word;
 
         // result defaults to all "grey"
-        let mut result: Vec<Clue> = Vec::with_capacity(5);
-        for c in word.iter().take(5) {
-            result.push(Clue::Wrong(*c));
-        }
+        let mut result: [Clue; 5] = [
+            Clue::Wrong(word[0]),
+            Clue::Wrong(word[1]),
+            Clue::Wrong(word[2]),
+            Clue::Wrong(word[3]),
+            Clue::Wrong(word[4]),
+        ];
 
         // Record exact matches
 
@@ -66,7 +69,7 @@ impl Setter {
                 result[i] = Clue::Elsewhere(word[i]);
             }
         }
-        [result[0], result[1], result[2], result[3], result[4]]
+        result
     }
 }
 

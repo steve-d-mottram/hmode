@@ -13,9 +13,9 @@ pub struct Solver {
 impl Solver {
     pub fn new(alt_words: bool) -> Self {
         Solver {
-            words: answers(),
+            words: answers().to_vec(),
             start_word: DEFAULT_START_WORD,
-            probe_words: all(alt_words),
+            probe_words: all(alt_words).to_vec(),
             guesses: 0,
             use_alt_words: alt_words,
         }
@@ -35,12 +35,10 @@ impl Solver {
     }
 
     fn filter(list: &[[u8; 5]], clues: CheckResult) -> Vec<[u8; 5]> {
-        let mut confirmed_letters: Vec<u8> = Vec::with_capacity(5);
+        let mut confirmed: [bool; 256] = [false; 256];
         for clue in &clues {
             match clue {
-                Clue::Right(c) | Clue::Elsewhere(c) => {
-                    confirmed_letters.push(*c);
-                }
+                Clue::Right(c) | Clue::Elsewhere(c) => confirmed[*c as usize] = true,
                 Clue::Wrong(_) => {}
             }
         }
@@ -55,7 +53,7 @@ impl Solver {
                         // present in the word but already accounted for by a Right (green)
                         // or Elsewhere (orange) clue, so we can only eliminate words containing
                         // the letter if the letter doesn't exist elsewhere in the clues.
-                        if word[i] == c || (word.contains(&c) && !confirmed_letters.contains(&c)) {
+                        if word[i] == c || (word.contains(&c) && !confirmed[c as usize]) {
                             return None;
                         }
                     }
@@ -165,7 +163,7 @@ mod tests {
     #[test]
     #[ignore] // This test is very slow. To run, use 'cargo test --ignored' or 'cargo test --include-ignored'
     fn test_some_words() {
-        for word in answers().into_iter().take(500) {
+        for &word in answers().into_iter().take(500) {
             println!("Testing : {}", std::str::from_utf8(&word).unwrap());
             let mut solver = Solver::new(false);
             let setter = Setter::from_word(word);
