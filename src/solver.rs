@@ -74,6 +74,49 @@ impl Solver {
         result
     }
 
+    /// Count how many words in the list match the given clues (without allocating a filtered vector)
+    fn count_matching(list: &[[u8; 5]], clues: CheckResult) -> usize {
+        let mut confirmed: [bool; 256] = [false; 256];
+        for clue in &clues {
+            match clue {
+                Clue::Right(c) | Clue::Elsewhere(c) => confirmed[*c as usize] = true,
+                Clue::Wrong(_) => {}
+            }
+        }
+
+        // Count words that pass all filters without allocating
+        let mut count = 0;
+        for &word in list {
+            let mut matches = true;
+            for (i, clue) in clues.into_iter().enumerate() {
+                match clue {
+                    Clue::Wrong(c) => {
+                        if word[i] == c || (word.contains(&c) && !confirmed[c as usize]) {
+                            matches = false;
+                            break;
+                        }
+                    }
+                    Clue::Right(c) => {
+                        if word[i] != c {
+                            matches = false;
+                            break;
+                        }
+                    }
+                    Clue::Elsewhere(c) => {
+                        if !word.contains(&c) || word[i] == c {
+                            matches = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if matches {
+                count += 1;
+            }
+        }
+        count
+    }
+
     pub fn filter_self(&mut self, clues: CheckResult) {
         self.words = Self::filter(&self.words, clues);
         self.probe_words = Self::filter(&self.probe_words, clues);
@@ -97,16 +140,24 @@ impl Solver {
         let mut best_reduction = 0;
         let mut best_word: Option<[u8; 5]> = None;
         let start_len = self.words.len();
+        
+        // For each probe word, calculate total reduction in answer list size
         for probe in &self.probe_words {
             let mut total_diff = 0;
+            
+            // For each answer word, see how much this probe narrows down the list
             for word in &self.words {
                 let setter = Setter::from_word(*word);
-                let filtered = Solver::filter(&self.words, setter.check(*probe));
-                if !filtered.is_empty() {
-                    let diff = start_len - filtered.len();
+                let clues = setter.check(*probe);
+                
+                // Count matching words without allocating a filtered vector
+                let matches = Solver::count_matching(&self.words, clues);
+                if matches > 0 {
+                    let diff = start_len - matches;
                     total_diff += diff;
                 }
             }
+            
             if total_diff > best_reduction {
                 best_reduction = total_diff;
                 best_word = Some(*probe);
