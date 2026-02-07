@@ -29,7 +29,7 @@ pub fn to_static_word(word: &str, answers_only: bool, alt_words: bool) -> Result
     } else {
         all(alt_words)
     };
-    // Copy the letters in word into a byte buffer as we can't convery
+    // Copy the letters in word into a byte buffer as we can't convert
     // a str to an array of bytes directly
     let mut temp: [u8; 5] = [0; 5];
     word.bytes().zip(temp.iter_mut()).for_each(|(b, p)| *p = b);
